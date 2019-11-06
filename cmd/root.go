@@ -32,6 +32,7 @@ type GlobalFlags struct {
 	User      string
 	Password  string
 	Debug     bool
+	DryRun    bool
 }
 
 const (
@@ -41,9 +42,9 @@ const (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:        cliName,
-		Short:      "A simple command line client for etcd3 to manipulate data (dangerous).",
-		Long:       "Dangerous!!! at one's own risk",
+		Use:   cliName,
+		Short: "A simple command line client for etcd3 to manipulate data (dangerous).",
+		Long:  "!!!!Dangerous!!! use at your own risk",
 	}
 	listcmd = &cobra.Command{
 		Use:   "list",
@@ -56,8 +57,6 @@ var (
 		Run:   versionCommandFunc,
 	}
 )
-
-//listcmd.Flags().BoolVar(&getKeysOnly, "keys-only", false, "Get only the keys")
 
 var globalFlags = GlobalFlags{}
 
@@ -85,6 +84,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&globalFlags.TLS.TrustedCAFile, "cacert", "", "verify certificates of TLS-enabled secure servers using this CA bundle")
 	rootCmd.PersistentFlags().StringVarP(&globalFlags.User, "user", "u", "", "username[:password] for authentication (prompt if password is not supplied)")
 	rootCmd.PersistentFlags().StringVarP(&globalFlags.Password, "password", "p", "", "password for authentication (if this option is used, --user option shouldn't include password)")
+
+	listcmd.Flags().BoolVarP(&globalFlags.DryRun, "dry-run", "t", false, "dry-run")
 
 	rootCmd.AddCommand(listcmd)
 	rootCmd.AddCommand(versioncmd)
