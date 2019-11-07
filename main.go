@@ -18,5 +18,5 @@ package main
 import "github.com/simonfuhrer/etcd-manipulator/cmd"
 
 func main() {
-  cmd.Execute()
+	cmd.Execute()
 }
