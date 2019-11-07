@@ -19,9 +19,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/k0kubun/pp"
+	"github.com/coreos/etcd/pkg/transport"
+	//"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
-	"go.etcd.io/etcd/pkg/transport"
+	"go.etcd.io/etcd/clientv3"
+
+	"github.com/simonfuhrer/etcd-manipulator/pkg/util"
+)
+
+const (
+	cliName = "etcd-manipulator"
+	version = "v0.0.1"
 )
 
 // GlobalFlags are flags that defined globally
@@ -33,12 +41,9 @@ type GlobalFlags struct {
 	Password  string
 	Debug     bool
 	DryRun    bool
+	Name      string
+	NewName   string
 }
-
-const (
-	cliName = "etcd-manipulator"
-	version = "v0.0.1"
-)
 
 var (
 	rootCmd = &cobra.Command{
@@ -46,12 +51,17 @@ var (
 		Short: "A simple command line client for etcd3 to manipulate data (dangerous).",
 		Long:  "!!!!Dangerous!!! use at your own risk",
 	}
-	listcmd = &cobra.Command{
-		Use:   "list",
+	listPVsCmd = &cobra.Command{
+		Use:   "listpvs",
 		Short: "list all pvs",
-		Run:   listCommandFunc,
+		Run:   listPVsCommandFunc,
 	}
-	versioncmd = &cobra.Command{
+	modifyPVsCmd = &cobra.Command{
+		Use:   "modifypvs",
+		Short: "modify pvs",
+		Run:   modifyPVsCommandFunc,
+	}
+	versionCmd = &cobra.Command{
 		Use:   "version",
 		Short: "Prints the version of the cli tool",
 		Run:   versionCommandFunc,
@@ -59,9 +69,24 @@ var (
 )
 
 var globalFlags = GlobalFlags{}
+var cl *clientv3.Client
 
-func listCommandFunc(cmd *cobra.Command, args []string) {
-	pp.Println(globalFlags)
+func listPVsCommandFunc(cmd *cobra.Command, args []string) {
+	cl, err := util.InitClient(globalFlags.Endpoints, globalFlags.TLS)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	cl.DumpPVs()
+}
+
+func modifyPVsCommandFunc(cmd *cobra.Command, args []string) {
+	cl, err := util.InitClient(globalFlags.Endpoints, globalFlags.TLS)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	cl.ModifyPVs(globalFlags.Name, globalFlags.NewName, globalFlags.DryRun)
 }
 
 func versionCommandFunc(cmd *cobra.Command, args []string) {
@@ -82,12 +107,17 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&globalFlags.TLS.CertFile, "cert", "", "identify secure client using this TLS certificate file")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.TLS.KeyFile, "key", "", "identify secure client using this TLS key file")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.TLS.TrustedCAFile, "cacert", "", "verify certificates of TLS-enabled secure servers using this CA bundle")
-	rootCmd.PersistentFlags().StringVarP(&globalFlags.User, "user", "u", "", "username[:password] for authentication (prompt if password is not supplied)")
-	rootCmd.PersistentFlags().StringVarP(&globalFlags.Password, "password", "p", "", "password for authentication (if this option is used, --user option shouldn't include password)")
 
-	listcmd.Flags().BoolVarP(&globalFlags.DryRun, "dry-run", "t", false, "dry-run")
+	rootCmd.MarkPersistentFlagRequired("cert")
+	rootCmd.MarkPersistentFlagRequired("key")
 
-	rootCmd.AddCommand(listcmd)
-	rootCmd.AddCommand(versioncmd)
+	modifyPVsCmd.Flags().BoolVar(&globalFlags.DryRun, "dry-run", true, "dry-run")
+	modifyPVsCmd.Flags().StringVar(&globalFlags.Name, "name", "", "vshpere datastore name")
+	modifyPVsCmd.Flags().StringVar(&globalFlags.NewName, "new-name", "", "new vshpere datastore name")
+	modifyPVsCmd.MarkFlagRequired("new-name")
+	modifyPVsCmd.MarkFlagRequired("name")
 
+	rootCmd.AddCommand(listPVsCmd)
+	rootCmd.AddCommand(modifyPVsCmd)
+	rootCmd.AddCommand(versionCmd)
 }
