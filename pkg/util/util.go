@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
-  "text/tabwriter"
 
-	"go.etcd.io/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
+	"go.etcd.io/etcd/clientv3"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,11 +90,11 @@ func (c *Client) ModifyPVs(name string, newname string, dryrun bool) error {
 	if err != nil {
 		return err
 	}
-  w := new(tabwriter.Writer)
-  w.Init(os.Stdout, 8, 8, 0, '\t', 0)
-  defer w.Flush()
-  fmt.Fprintf(w, "\n %s\t%s\t%s\t", "key", "name", "newname")
-  fmt.Fprintf(w, "\n %s\t%s\t%s\t", "----", "----", "----")
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 8, 8, 0, '\t', 0)
+	defer w.Flush()
+	fmt.Fprintf(w, "\n %s\t%s\t%s\t", "key", "name", "newname")
+	fmt.Fprintf(w, "\n %s\t%s\t%s\t", "----", "----", "----")
 
 	for _, pv := range out.Items {
 		outpv := &v1.PersistentVolume{}
@@ -114,7 +114,7 @@ func (c *Client) ModifyPVs(name string, newname string, dryrun bool) error {
 				}
 			}
 		}
-    fmt.Fprintf(w, "\n %s\t%s\t%s\t", pvpath, oldvolumePath, newvolumePath)
+		fmt.Fprintf(w, "\n %s\t%s\t%s\t", pvpath, oldvolumePath, newvolumePath)
 	}
 
 	return nil
