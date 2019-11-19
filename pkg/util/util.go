@@ -99,22 +99,24 @@ func (c *Client) ModifyPVs(name string, newname string, dryrun bool) error {
 	for _, pv := range out.Items {
 		outpv := &v1.PersistentVolume{}
 		pvpath := fmt.Sprintf("%s/%s", pvkey, pv.ObjectMeta.Name)
-		oldvolumePath := pv.Spec.PersistentVolumeSource.VsphereVolume.VolumePath
-		newvolumePath := strings.Replace(oldvolumePath, name, newname, -1)
-		if strings.EqualFold(oldvolumePath, newvolumePath) != true {
-			if dryrun != true {
-				err = store.GuaranteedUpdate(ctx, pvpath, outpv, true, nil,
-					storage.SimpleUpdate(func(obj runtime.Object) (runtime.Object, error) {
-						pvneu := obj.(*v1.PersistentVolume)
-						pvneu.Spec.PersistentVolumeSource.VsphereVolume.VolumePath = newvolumePath
-						return obj, nil
-					}))
-				if err != nil {
-					return err
+		if strings.EqualFold(pv.ObjectMeta.Annotations["pv.kubernetes.io/provisioned-by"], "kubernetes.io/vsphere-volume") == true {
+			oldvolumePath := pv.Spec.PersistentVolumeSource.VsphereVolume.VolumePath
+			newvolumePath := strings.Replace(oldvolumePath, name, newname, -1)
+			if strings.EqualFold(oldvolumePath, newvolumePath) != true {
+				if dryrun != true {
+					err = store.GuaranteedUpdate(ctx, pvpath, outpv, true, nil,
+						storage.SimpleUpdate(func(obj runtime.Object) (runtime.Object, error) {
+							pvneu := obj.(*v1.PersistentVolume)
+							pvneu.Spec.PersistentVolumeSource.VsphereVolume.VolumePath = newvolumePath
+							return obj, nil
+						}))
+					if err != nil {
+						return err
+					}
 				}
 			}
+			fmt.Fprintf(w, "\n %s\t%s\t%s\t", pvpath, oldvolumePath, newvolumePath)
 		}
-		fmt.Fprintf(w, "\n %s\t%s\t%s\t", pvpath, oldvolumePath, newvolumePath)
 	}
 
 	return nil
