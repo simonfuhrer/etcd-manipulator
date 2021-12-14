@@ -87,6 +87,7 @@ func modifyPVsCommandFunc(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	cl.ModifyPVs(globalFlags.Name, globalFlags.NewName, globalFlags.DryRun)
+	fmt.Printf("\n")
 }
 
 func versionCommandFunc(cmd *cobra.Command, args []string) {
@@ -112,8 +113,8 @@ func init() {
 	rootCmd.MarkPersistentFlagRequired("key")
 
 	modifyPVsCmd.Flags().BoolVar(&globalFlags.DryRun, "dry-run", true, "dry-run")
-	modifyPVsCmd.Flags().StringVar(&globalFlags.Name, "name", "", "vshpere datastore name")
-	modifyPVsCmd.Flags().StringVar(&globalFlags.NewName, "new-name", "", "new vshpere datastore name")
+	modifyPVsCmd.Flags().StringVar(&globalFlags.Name, "name", "", "targetPortal name")
+	modifyPVsCmd.Flags().StringVar(&globalFlags.NewName, "new-name", "", "new targetPortal name")
 	modifyPVsCmd.MarkFlagRequired("new-name")
 	modifyPVsCmd.MarkFlagRequired("name")
 

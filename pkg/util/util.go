@@ -11,7 +11,7 @@ import (
 
 	"github.com/coreos/etcd/pkg/transport"
 	"go.etcd.io/etcd/clientv3"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -19,8 +19,9 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/value"
+
 	//"go.uber.org/zap"
-	//"github.com/k0kubun/pp"
+	"github.com/k0kubun/pp"
 )
 
 const (
@@ -97,24 +98,32 @@ func (c *Client) ModifyPVs(name string, newname string, dryrun bool) error {
 	fmt.Fprintf(w, "\n %s\t%s\t%s\t", "----", "----", "----")
 
 	for _, pv := range out.Items {
+		if pv.Spec.CSI == nil {
+			continue
+		}
 		outpv := &v1.PersistentVolume{}
 		pvpath := fmt.Sprintf("%s/%s", pvkey, pv.ObjectMeta.Name)
-		oldvolumePath := pv.Spec.PersistentVolumeSource.VsphereVolume.VolumePath
-		newvolumePath := strings.Replace(oldvolumePath, name, newname, -1)
-		if strings.EqualFold(oldvolumePath, newvolumePath) != true {
-			if dryrun != true {
+		oldPath := pv.Spec.PersistentVolumeSource.CSI.VolumeAttributes["targetPortal"]
+		newPath := strings.Replace(oldPath, name, newname, -1)
+		if !strings.EqualFold(oldPath, newPath) {
+			if !dryrun {
+				pp.Println(outpv)
+			}
+
+			if !dryrun {
 				err = store.GuaranteedUpdate(ctx, pvpath, outpv, true, nil,
 					storage.SimpleUpdate(func(obj runtime.Object) (runtime.Object, error) {
 						pvneu := obj.(*v1.PersistentVolume)
-						pvneu.Spec.PersistentVolumeSource.VsphereVolume.VolumePath = newvolumePath
+						pvneu.Spec.PersistentVolumeSource.CSI.VolumeAttributes["targetPortal"] = newPath
 						return obj, nil
 					}))
 				if err != nil {
 					return err
 				}
 			}
+
 		}
-		fmt.Fprintf(w, "\n %s\t%s\t%s\t", pvpath, oldvolumePath, newvolumePath)
+		fmt.Fprintf(w, "\n %s\t%s\t%s\t", pvpath, oldPath, newPath)
 	}
 
 	return nil
